@@ -194,9 +194,9 @@ export default function ImportsPage() {
                         {new Date(imp.uploadedAt).toLocaleString()}
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border font-medium ${STATUS_STYLES[imp.status]}`}>
-                          <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOTS[imp.status]}`} />
-                          {imp.status.replace(/_/g, " ")}
+                        <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border font-medium ${imp.status ? STATUS_STYLES[imp.status] : "bg-slate-500/20 text-slate-300 border-slate-500/30"}`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${imp.status ? STATUS_DOTS[imp.status] : "bg-slate-400"}`} />
+                          {imp.status?.replace(/_/g, " ") || "UNKNOWN"}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right">

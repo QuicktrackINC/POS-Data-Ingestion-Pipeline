@@ -53,6 +53,14 @@ PARSER_VERSION = "1.0.0"
 async def lifespan(app: FastAPI):
     await db.connect()
     logger.info("Prisma connected to Neon PostgreSQL")
+    
+    # Ensure pg_trgm extension is available for fuzzy matching
+    try:
+        await db.execute_raw('CREATE EXTENSION IF NOT EXISTS pg_trgm;')
+        logger.info("pg_trgm extension verified")
+    except Exception as e:
+        logger.warning("Could not verify/create pg_trgm extension: %s", e)
+        
     yield
     await db.disconnect()
     logger.info("Prisma disconnected")
@@ -819,30 +827,58 @@ class ResolveProductRequest(BaseModel):
 async def get_unknown_products(
     skip: int = Query(0), limit: int = Query(100, le=500),
 ) -> dict:
-    from difflib import get_close_matches
-    
-    records = await db.unknownproduct.find_many(
-        order={"occurrences": "desc"}, skip=skip, take=limit
-    )
     total = await db.unknownproduct.count()
     
-    # Get all master names for fuzzy matching
-    all_masters = await db.productmaster.find_many()
-    master_names = [m.canonicalName for m in all_masters]
+    # Use native PostgreSQL trigram matching (pg_trgm) for robust fuzzy search
+    query = '''
+    SELECT 
+        u."id", 
+        u."rawName", 
+        u."storeCode", 
+        u."businessDate", 
+        u."occurrences", 
+        u."suggestedMatch" as "existingSuggestion",
+        u."createdAt",
+        (
+            SELECT m."canonicalName"
+            FROM "product_masters" m
+            WHERE similarity(m."canonicalName", u."rawName") > 0.2
+            ORDER BY m."canonicalName" <-> u."rawName"
+            LIMIT 1
+        ) as "pgSuggestion"
+    FROM "unknown_products" u
+    ORDER BY u."occurrences" DESC
+    LIMIT $1 OFFSET $2
+    '''
     
     products = []
-    for r in records:
-        suggestion = None
-        if master_names:
-            matches = get_close_matches(r.rawName, master_names, n=1, cutoff=0.6)
-            if matches:
-                suggestion = matches[0]
-        
-        products.append({
-            "id": r.id, "rawName": r.rawName, "storeCode": r.storeCode,
-            "businessDate": r.businessDate, "occurrences": r.occurrences,
-            "suggestedMatch": suggestion or r.suggestedMatch, "createdAt": r.createdAt.isoformat()
-        })
+    try:
+        raw_records = await db.query_raw(query, limit, skip)
+        for r in raw_records:
+            # We use existing suggestion if present, else fallback to pg_trgm suggestion
+            sugg = r.get("existingSuggestion") or r.get("pgSuggestion")
+            products.append({
+                "id": r["id"], 
+                "rawName": r["rawName"], 
+                "storeCode": r.get("storeCode"),
+                "businessDate": r.get("businessDate"), 
+                "occurrences": r["occurrences"],
+                "suggestedMatch": sugg, 
+                "createdAt": r["createdAt"].isoformat() if hasattr(r["createdAt"], "isoformat") else r["createdAt"]
+            })
+    except Exception as e:
+        logger.error("Error executing pg_trgm fuzzy search: %s", e)
+        # Fallback to simple find_many if raw query fails (e.g. extension not installed)
+        records = await db.unknownproduct.find_many(
+            order={"occurrences": "desc"}, skip=skip, take=limit
+        )
+        products = [
+            {
+                "id": r.id, "rawName": r.rawName, "storeCode": r.storeCode,
+                "businessDate": r.businessDate, "occurrences": r.occurrences,
+                "suggestedMatch": r.suggestedMatch, "createdAt": r.createdAt.isoformat()
+            } for r in records
+        ]
         
     return {"total": total, "products": products}
 

@@ -122,9 +122,9 @@ export default function ImportDetailPage({ params }: { params: Promise<{ id: str
     </div>
   );
 
-  if (!data) return null;
+  if (!data || !data.import) return null;
   const imp = data.import;
-  const isFailed = imp.status.startsWith("FAILED");
+  const isFailed = imp.status?.startsWith("FAILED");
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
@@ -134,8 +134,8 @@ export default function ImportDetailPage({ params }: { params: Promise<{ id: str
             <Link href="/imports" className="text-slate-400 hover:text-white transition-colors text-sm">← Imports</Link>
             <div className="h-4 w-px bg-white/10" />
             <span className="font-mono text-xs text-slate-400 truncate max-w-sm">{imp.originalFileName}</span>
-            <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border font-medium ${STATUS_COLORS[imp.status] || "text-slate-300 bg-slate-800 border-white/10"}`}>
-              {imp.status.replace(/_/g, " ")}
+            <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border font-medium ${imp.status ? STATUS_COLORS[imp.status] : "text-slate-300 bg-slate-800 border-white/10"}`}>
+              {imp.status?.replace(/_/g, " ") || "UNKNOWN"}
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -205,13 +205,13 @@ export default function ImportDetailPage({ params }: { params: Promise<{ id: str
           <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Status Timeline</h2>
           <div className="relative pl-6">
             <div className="absolute left-2 top-0 bottom-0 w-px bg-white/10" />
-            {data.timeline.map((ev, i) => (
+            {data.timeline?.map((ev, i) => (
               <div key={i} className="relative mb-3 last:mb-0">
-                <div className={`absolute -left-4 top-1.5 h-2 w-2 rounded-full ${STATUS_COLORS[ev.status]?.includes("emerald") ? "bg-emerald-400" : STATUS_COLORS[ev.status]?.includes("rose") ? "bg-rose-400" : STATUS_COLORS[ev.status]?.includes("violet") ? "bg-violet-400" : "bg-slate-500"}`} />
+                <div className={`absolute -left-4 top-1.5 h-2 w-2 rounded-full ${ev.status && STATUS_COLORS[ev.status]?.includes("emerald") ? "bg-emerald-400" : ev.status && STATUS_COLORS[ev.status]?.includes("rose") ? "bg-rose-400" : ev.status && STATUS_COLORS[ev.status]?.includes("violet") ? "bg-violet-400" : "bg-slate-500"}`} />
                 <div className="bg-white/2 border border-white/5 rounded-lg px-3 py-2">
                   <div className="flex items-center justify-between">
-                    <span className={`text-xs font-semibold ${STATUS_COLORS[ev.status]?.includes("emerald") ? "text-emerald-400" : STATUS_COLORS[ev.status]?.includes("rose") ? "text-rose-400" : STATUS_COLORS[ev.status]?.includes("violet") ? "text-violet-400" : "text-slate-300"}`}>
-                      {ev.status.replace(/_/g, " ")}
+                    <span className={`text-xs font-semibold ${ev.status && STATUS_COLORS[ev.status]?.includes("emerald") ? "text-emerald-400" : ev.status && STATUS_COLORS[ev.status]?.includes("rose") ? "text-rose-400" : ev.status && STATUS_COLORS[ev.status]?.includes("violet") ? "text-violet-400" : "text-slate-300"}`}>
+                      {ev.status?.replace(/_/g, " ") || "UNKNOWN"}
                     </span>
                     <span className="text-[10px] text-slate-500">{new Date(ev.createdAt).toLocaleString()}</span>
                   </div>
@@ -231,14 +231,14 @@ export default function ImportDetailPage({ params }: { params: Promise<{ id: str
                 onClick={() => setActiveTab(t)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all capitalize ${activeTab === t ? "bg-sky-500 text-white shadow-lg" : "text-slate-400 hover:text-white"}`}
               >
-                {t === "summary" ? "Daily Sales" : t === "dept" ? "Departments" : t === "items" ? "Line Items" : t === "fuel" ? "Fuel" : `Errors ${data.errors.length > 0 ? `(${data.errors.length})` : ""}`}
+                {t === "summary" ? "Daily Sales" : t === "dept" ? "Departments" : t === "items" ? "Line Items" : t === "fuel" ? "Fuel" : `Errors ${data.errors?.length > 0 ? `(${data.errors.length})` : ""}`}
               </button>
             ))}
           </nav>
 
           {activeTab === "summary" && (
             <div className="space-y-2">
-              {data.extracted.dailySales.length === 0 ? (
+              {!data.extracted?.dailySales?.length ? (
                 <p className="text-slate-500 text-sm py-6 text-center">No daily sales summary extracted.</p>
               ) : data.extracted.dailySales.map((d, i) => (
                 <div key={i} className="bg-white/2 border border-white/5 rounded-xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
@@ -257,7 +257,7 @@ export default function ImportDetailPage({ params }: { params: Promise<{ id: str
 
           {activeTab === "items" && (
             <div className="rounded-xl border border-white/5 overflow-hidden">
-              {data.extracted.lineItems.length === 0 ? (
+              {!data.extracted?.lineItems?.length ? (
                 <p className="text-slate-500 text-sm py-6 text-center">No line items extracted.</p>
               ) : (
                 <div className="overflow-x-auto">
@@ -293,7 +293,7 @@ export default function ImportDetailPage({ params }: { params: Promise<{ id: str
 
           {activeTab === "dept" && (
             <div className="rounded-xl border border-white/5 overflow-hidden">
-              {data.extracted.departments.length === 0 ? (
+              {!data.extracted?.departments?.length ? (
                 <p className="text-slate-500 text-sm py-6 text-center">No department data extracted.</p>
               ) : (
                 <table className="w-full text-xs">
@@ -323,7 +323,7 @@ export default function ImportDetailPage({ params }: { params: Promise<{ id: str
 
           {activeTab === "fuel" && (
             <div className="rounded-xl border border-white/5 overflow-hidden">
-              {data.extracted.fuel.length === 0 ? (
+              {!data.extracted?.fuel?.length ? (
                 <p className="text-slate-500 text-sm py-6 text-center">No fuel data in this import.</p>
               ) : (
                 <table className="w-full text-xs">
@@ -352,7 +352,7 @@ export default function ImportDetailPage({ params }: { params: Promise<{ id: str
 
           {activeTab === "errors" && (
             <div className="space-y-2">
-              {data.errors.length === 0 ? (
+              {!data.errors?.length ? (
                 <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-6 text-center text-emerald-400 text-sm">
                   ✅ No errors recorded for this import.
                 </div>
