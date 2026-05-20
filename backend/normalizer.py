@@ -94,14 +94,23 @@ def normalize_business_date(raw: dict) -> str | None:
 
 def normalize_item(raw: dict) -> dict:
     """Normalize a raw item/product dict into canonical fields."""
+    price = _safe_float(_first(raw, _PRICE_KEYS))
+    quantity = _safe_float(_first(raw, _QUANTITY_KEYS), 1.0)
+    sales_amount = _first(raw, _SALES_AMOUNT_KEYS)
+    
+    if sales_amount is None:
+        sales_amount = price * quantity
+    else:
+        sales_amount = _safe_float(sales_amount)
+
     return {
         "itemName": str(_first(raw, _ITEM_NAME_KEYS) or "Unknown Item"),
         "itemCode": str(_first(raw, _ITEM_CODE_KEYS) or ""),
         "upc": str(_first(raw, _UPC_KEYS) or ""),
         "department": str(_first(raw, _DEPT_KEYS) or ""),
-        "price": _safe_float(_first(raw, _PRICE_KEYS)),
-        "quantity": _safe_float(_first(raw, _QUANTITY_KEYS), 1.0),
-        "salesAmount": _safe_float(_first(raw, _SALES_AMOUNT_KEYS)),
+        "price": price,
+        "quantity": quantity,
+        "salesAmount": sales_amount,
         "taxAmount": _safe_float(_first(raw, _TAX_KEYS)),
     }
 
