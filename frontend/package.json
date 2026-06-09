@@ -7,13 +7,16 @@
     "dev:doppler": "doppler run -- next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "postinstall": "python3 -m venv .venv && . .venv/bin/activate && pip install prisma==0.13.1 && prisma db push --schema=./backend/prisma/schema.prisma --accept-data-loss && prisma generate --schema=./backend/prisma/schema.prisma"
   },
   "dependencies": {
     "jszip": "^3.10.1",
     "next": "13.5.6",
     "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "react-dom": "18.2.0",
+    "@prisma/client": "^5.11.0",
+    "prisma": "^5.11.0"
   },
   "devDependencies": {
     "@types/node": "^20",

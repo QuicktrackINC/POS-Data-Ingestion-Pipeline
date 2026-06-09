@@ -1,0 +1,346 @@
+// QuickTrack Integration Core — Prisma Schema
+// learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider             = "prisma-client-py"
+  output               = "../generated/prisma"
+  recursive_type_depth = 5
+  binaryTargets        = ["native", "rhel-openssl-1.0.x", "rhel-openssl-3.0.x", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// IMPORT TRACKING
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Master record for every XML file upload.
+model ImportRecord {
+  id               String   @id @default(uuid())
+
+  /// Original file name as uploaded.
+  originalFileName String
+  /// Path where the raw XML is stored on disk.
+  storedFilePath   String?
+  /// SHA-256 checksum of the raw file bytes.
+  checksum         String
+  /// File size in bytes.
+  fileSize         Int
+  /// When the file was uploaded.
+  uploadedAt       DateTime @default(now())
+  /// Who uploaded it (user/system identifier).
+  uploadedBy       String   @default("system")
+  /// Source type: POSExport, NAXML-ItemMaintenanceRequest, etc.
+  sourceType       String?
+  /// Normalized store code extracted from the file.
+  storeCode        String?
+  /// Business date the data covers (YYYY-MM-DD).
+  businessDate     String?
+  /// Parser version used.
+  parserVersion    String   @default("1.0.0")
+
+  /// Current processing status.
+  status           ImportStatus @default(UPLOADED)
+  /// Number of records successfully extracted.
+  recordsExtracted Int          @default(0)
+  /// Number of validation/processing errors.
+  errorCount       Int          @default(0)
+
+  /// The full raw XML text preserved for reprocessing.
+  rawXml           String?
+
+  /// Timeline of status transitions.
+  events           ImportEvent[]
+  /// All errors/warnings recorded during processing.
+  errors           ImportError[]
+
+  /// Extracted normalized data
+  dailySalesSummaries DailySalesSummary[]
+  salesLineItems      SalesLineItem[]
+  departmentSummaries DepartmentSummary[]
+  fuelRecords         FuelRecord[]
+  productExtracts     ProductExtract[]
+
+  updatedAt        DateTime @updatedAt
+
+  @@map("import_records")
+}
+
+/// Possible states of an import lifecycle.
+enum ImportStatus {
+  UPLOADED
+  VALIDATING
+  VALIDATED
+  PROCESSING
+  PROCESSED
+  FAILED_VALIDATION
+  FAILED_PROCESSING
+  ARCHIVED
+}
+
+/// A single event in an import's lifecycle (status change, reprocess, etc.).
+model ImportEvent {
+  id         String   @id @default(uuid())
+  importId   String
+  importRecord ImportRecord @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  /// Status at time of event.
+  status     ImportStatus
+  /// Optional human-readable note.
+  note       String?
+  createdAt  DateTime @default(now())
+
+  @@map("import_events")
+}
+
+/// A validation or processing error linked to an import.
+model ImportError {
+  id         String   @id @default(uuid())
+  importId   String
+  importRecord ImportRecord @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  /// Error category: VALIDATION, PROCESSING, DUPLICATE, etc.
+  errorType  String
+  /// Human-readable error message.
+  message    String
+  /// Optional field/path that caused the error.
+  field      String?
+  createdAt  DateTime @default(now())
+
+  @@map("import_errors")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NORMALIZED EXTRACTED DATA
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Normalized daily sales totals per store per date.
+model DailySalesSummary {
+  id               String   @id @default(uuid())
+  importId         String
+  importRecord ImportRecord @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  storeCode        String
+  businessDate     String
+  grossSales       Float    @default(0)
+  netSales         Float    @default(0)
+  taxAmount        Float    @default(0)
+  transactionCount Int      @default(0)
+  averageTicket    Float    @default(0)
+  cashAmount       Float    @default(0)
+  creditAmount     Float    @default(0)
+  debitAmount      Float    @default(0)
+  ebtAmount        Float    @default(0)
+  fuelSales        Float    @default(0)
+  discountAmount   Float    @default(0)
+
+  createdAt        DateTime @default(now())
+
+  @@map("daily_sales_summaries")
+}
+
+/// Individual line item extracted from a transaction.
+model SalesLineItem {
+  id             String   @id @default(uuid())
+  importId       String
+  importRecord ImportRecord @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  storeCode      String
+  businessDate   String
+  transactionId  String?
+  itemName       String
+  itemCode       String?
+  upc            String?
+  department     String?
+  quantity       Float    @default(1)
+  unitPrice      Float    @default(0)
+  salesAmount    Float    @default(0)
+  taxAmount      Float    @default(0)
+
+  productMasterId String?
+  productMaster   ProductMaster? @relation(fields: [productMasterId], references: [id])
+
+  createdAt      DateTime @default(now())
+
+  @@map("sales_line_items")
+}
+
+/// Department-level sales rollup.
+model DepartmentSummary {
+  id             String   @id @default(uuid())
+  importId       String
+  importRecord ImportRecord @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  storeCode      String
+  businessDate   String
+  department     String
+  quantitySold   Float    @default(0)
+  grossAmount    Float    @default(0)
+  netAmount      Float    @default(0)
+  taxAmount      Float    @default(0)
+  discountAmount Float    @default(0)
+
+  createdAt      DateTime @default(now())
+
+  @@map("department_summaries")
+}
+
+/// Fuel sales record extracted from the import.
+model FuelRecord {
+  id             String   @id @default(uuid())
+  importId       String
+  importRecord ImportRecord @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  storeCode      String
+  businessDate   String
+  fuelGrade      String
+  gallons        Float    @default(0)
+  salesAmount    Float    @default(0)
+  pricePerGallon Float    @default(0)
+  pumpNumber     String?
+
+  createdAt      DateTime @default(now())
+
+  @@map("fuel_records")
+}
+
+/// Raw product data extracted from a file (pre-mapping).
+model ProductExtract {
+  id            String   @id @default(uuid())
+  importId      String
+  importRecord ImportRecord @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  storeCode     String
+  businessDate  String?
+  rawName       String
+  itemCode      String?
+  upc           String?
+  department    String?
+  unitPrice     Float?
+
+  productMasterId String?
+  productMaster   ProductMaster? @relation(fields: [productMasterId], references: [id])
+
+  createdAt     DateTime @default(now())
+
+  @@map("product_extracts")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PRODUCT MAPPING
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Canonical product record.
+model ProductMaster {
+  id            String   @id @default(uuid())
+  canonicalName String   @unique
+  upc           String?
+  department    String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  aliases       ProductAlias[]
+  salesLineItems SalesLineItem[]
+  extracts      ProductExtract[]
+
+  @@map("product_masters")
+}
+
+/// Maps a raw/alias product name to a canonical ProductMaster.
+model ProductAlias {
+  id              String   @id @default(uuid())
+  rawName         String   @unique
+  productMasterId String
+  productMaster   ProductMaster @relation(fields: [productMasterId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+
+  @@map("product_aliases")
+}
+
+/// Products that could not be mapped — queued for review.
+model UnknownProduct {
+  id             String   @id @default(uuid())
+  rawName        String
+  storeCode      String?
+  businessDate   String?
+  occurrences    Int      @default(1)
+  suggestedMatch String?
+  resolvedAt     DateTime?
+  createdAt      DateTime @default(now())
+
+  @@unique([rawName, storeCode])
+  @@map("unknown_products")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LEGACY MODELS (preserved for backward compatibility)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Stores every raw POS XML upload alongside its parsed JSON representation.
+model POSDataRecord {
+  id           String   @id @default(uuid())
+  source       String   @default("POS")
+  raw_xml      String
+  parsed_data  Json
+  message_type String?
+  created_at   DateTime @default(now())
+
+  @@map("pos_data_records")
+}
+
+/// Represents a product item in the catalog.
+model Item {
+  id            String     @id @default(uuid())
+  item_code     String     @unique
+  description   String
+  price         Float
+  department_id String?
+  updated_at    DateTime   @updatedAt
+  created_at    DateTime   @default(now())
+  inventory     Inventory?
+
+  @@map("items")
+}
+
+/// Tracks current stock levels for items.
+model Inventory {
+  id               String   @id @default(uuid())
+  item_code        String   @unique
+  item             Item     @relation(fields: [item_code], references: [item_code], onDelete: Cascade)
+  quantity_on_hand Int      @default(0)
+  updated_at       DateTime @updatedAt
+
+  @@map("inventory")
+}
+
+/// Represents a completed sale transaction.
+model Sale {
+  id             String     @id @default(uuid())
+  transaction_id String     @unique
+  timestamp      DateTime
+  total          Float
+  tax            Float
+  grand_total    Float
+  payment_type   String
+  items          SaleItem[]
+  created_at     DateTime   @default(now())
+
+  @@map("sales")
+}
+
+/// Represents a single line item within a sale.
+model SaleItem {
+  id       String @id @default(uuid())
+  sale_id  String
+  sale     Sale   @relation(fields: [sale_id], references: [id], onDelete: Cascade)
+  sku      String
+  name     String
+  quantity Int
+  price    Float
+
+  @@map("sale_items")
+}
