@@ -134,11 +134,14 @@ async def sso_login(sso_data: SSOLogin):
         payload = jwt.decode(sso_data.token, AUTH_SECRET, algorithms=["HS256"], audience="pos")
         
         email = payload.get("email")
-        role = payload.get("role", "ADMIN")
-        
-        # In POS, we don't have a users table right now.
-        # We just issue a local session token to unlock the frontend dashboard.
-        access_token = create_access_token(data={"sub": email, "role": role})
+        if not email:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email missing in SSO token")
+            
+        user = await db.user.find_unique(where={"username": email})
+        if not user:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account not linked. Access denied.")
+            
+        access_token = create_access_token(data={"sub": user.username, "role": user.role})
         return {"access_token": access_token, "token_type": "bearer"}
     except jwt.PyJWTError as e:
         logger.error(f"SSO validation failed: {e}")

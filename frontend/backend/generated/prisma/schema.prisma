@@ -3,7 +3,9 @@
 
 generator client {
   provider             = "prisma-client-py"
+  output               = "../generated/prisma"
   recursive_type_depth = 5
+  binaryTargets        = ["native", "rhel-openssl-1.0.x", "rhel-openssl-3.0.x", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -32,7 +34,7 @@ model User {
 
 /// Master record for every XML file upload.
 model ImportRecord {
-  id               String   @id @default(uuid())
+  id String @id @default(uuid())
 
   /// Original file name as uploaded.
   originalFileName String
@@ -63,12 +65,12 @@ model ImportRecord {
   errorCount       Int          @default(0)
 
   /// The full raw XML text preserved for reprocessing.
-  rawXml           String?
+  rawXml String?
 
   /// Timeline of status transitions.
-  events           ImportEvent[]
+  events ImportEvent[]
   /// All errors/warnings recorded during processing.
-  errors           ImportError[]
+  errors ImportError[]
 
   /// Extracted normalized data
   dailySalesSummaries DailySalesSummary[]
@@ -77,7 +79,7 @@ model ImportRecord {
   fuelRecords         FuelRecord[]
   productExtracts     ProductExtract[]
 
-  updatedAt        DateTime @updatedAt
+  updatedAt DateTime @updatedAt
 
   @@map("import_records")
 }
@@ -96,32 +98,32 @@ enum ImportStatus {
 
 /// A single event in an import's lifecycle (status change, reprocess, etc.).
 model ImportEvent {
-  id         String   @id @default(uuid())
-  importId   String
+  id           String       @id @default(uuid())
+  importId     String
   importRecord ImportRecord @relation(fields: [importId], references: [id], onDelete: Cascade)
 
   /// Status at time of event.
-  status     ImportStatus
+  status    ImportStatus
   /// Optional human-readable note.
-  note       String?
-  createdAt  DateTime @default(now())
+  note      String?
+  createdAt DateTime     @default(now())
 
   @@map("import_events")
 }
 
 /// A validation or processing error linked to an import.
 model ImportError {
-  id         String   @id @default(uuid())
-  importId   String
+  id           String       @id @default(uuid())
+  importId     String
   importRecord ImportRecord @relation(fields: [importId], references: [id], onDelete: Cascade)
 
   /// Error category: VALIDATION, PROCESSING, DUPLICATE, etc.
-  errorType  String
+  errorType String
   /// Human-readable error message.
-  message    String
+  message   String
   /// Optional field/path that caused the error.
-  field      String?
-  createdAt  DateTime @default(now())
+  field     String?
+  createdAt DateTime @default(now())
 
   @@map("import_errors")
 }
@@ -132,112 +134,112 @@ model ImportError {
 
 /// Normalized daily sales totals per store per date.
 model DailySalesSummary {
-  id               String   @id @default(uuid())
-  importId         String
+  id           String       @id @default(uuid())
+  importId     String
   importRecord ImportRecord @relation(fields: [importId], references: [id], onDelete: Cascade)
 
   storeCode        String
   businessDate     String
-  grossSales       Float    @default(0)
-  netSales         Float    @default(0)
-  taxAmount        Float    @default(0)
-  transactionCount Int      @default(0)
-  averageTicket    Float    @default(0)
-  cashAmount       Float    @default(0)
-  creditAmount     Float    @default(0)
-  debitAmount      Float    @default(0)
-  ebtAmount        Float    @default(0)
-  fuelSales        Float    @default(0)
-  discountAmount   Float    @default(0)
+  grossSales       Float  @default(0)
+  netSales         Float  @default(0)
+  taxAmount        Float  @default(0)
+  transactionCount Int    @default(0)
+  averageTicket    Float  @default(0)
+  cashAmount       Float  @default(0)
+  creditAmount     Float  @default(0)
+  debitAmount      Float  @default(0)
+  ebtAmount        Float  @default(0)
+  fuelSales        Float  @default(0)
+  discountAmount   Float  @default(0)
 
-  createdAt        DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@map("daily_sales_summaries")
 }
 
 /// Individual line item extracted from a transaction.
 model SalesLineItem {
-  id             String   @id @default(uuid())
-  importId       String
+  id           String       @id @default(uuid())
+  importId     String
   importRecord ImportRecord @relation(fields: [importId], references: [id], onDelete: Cascade)
 
-  storeCode      String
-  businessDate   String
-  transactionId  String?
-  itemName       String
-  itemCode       String?
-  upc            String?
-  department     String?
-  quantity       Float    @default(1)
-  unitPrice      Float    @default(0)
-  salesAmount    Float    @default(0)
-  taxAmount      Float    @default(0)
+  storeCode     String
+  businessDate  String
+  transactionId String?
+  itemName      String
+  itemCode      String?
+  upc           String?
+  department    String?
+  quantity      Float   @default(1)
+  unitPrice     Float   @default(0)
+  salesAmount   Float   @default(0)
+  taxAmount     Float   @default(0)
 
   productMasterId String?
   productMaster   ProductMaster? @relation(fields: [productMasterId], references: [id])
 
-  createdAt      DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@map("sales_line_items")
 }
 
 /// Department-level sales rollup.
 model DepartmentSummary {
-  id             String   @id @default(uuid())
-  importId       String
+  id           String       @id @default(uuid())
+  importId     String
   importRecord ImportRecord @relation(fields: [importId], references: [id], onDelete: Cascade)
 
   storeCode      String
   businessDate   String
   department     String
-  quantitySold   Float    @default(0)
-  grossAmount    Float    @default(0)
-  netAmount      Float    @default(0)
-  taxAmount      Float    @default(0)
-  discountAmount Float    @default(0)
+  quantitySold   Float  @default(0)
+  grossAmount    Float  @default(0)
+  netAmount      Float  @default(0)
+  taxAmount      Float  @default(0)
+  discountAmount Float  @default(0)
 
-  createdAt      DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@map("department_summaries")
 }
 
 /// Fuel sales record extracted from the import.
 model FuelRecord {
-  id             String   @id @default(uuid())
-  importId       String
+  id           String       @id @default(uuid())
+  importId     String
   importRecord ImportRecord @relation(fields: [importId], references: [id], onDelete: Cascade)
 
   storeCode      String
   businessDate   String
   fuelGrade      String
-  gallons        Float    @default(0)
-  salesAmount    Float    @default(0)
-  pricePerGallon Float    @default(0)
+  gallons        Float   @default(0)
+  salesAmount    Float   @default(0)
+  pricePerGallon Float   @default(0)
   pumpNumber     String?
 
-  createdAt      DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@map("fuel_records")
 }
 
 /// Raw product data extracted from a file (pre-mapping).
 model ProductExtract {
-  id            String   @id @default(uuid())
-  importId      String
+  id           String       @id @default(uuid())
+  importId     String
   importRecord ImportRecord @relation(fields: [importId], references: [id], onDelete: Cascade)
 
-  storeCode     String
-  businessDate  String?
-  rawName       String
-  itemCode      String?
-  upc           String?
-  department    String?
-  unitPrice     Float?
+  storeCode    String
+  businessDate String?
+  rawName      String
+  itemCode     String?
+  upc          String?
+  department   String?
+  unitPrice    Float?
 
   productMasterId String?
   productMaster   ProductMaster? @relation(fields: [productMasterId], references: [id])
 
-  createdAt     DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@map("product_extracts")
 }
@@ -256,34 +258,34 @@ model ProductMaster {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  aliases       ProductAlias[]
+  aliases        ProductAlias[]
   salesLineItems SalesLineItem[]
-  extracts      ProductExtract[]
+  extracts       ProductExtract[]
 
   @@map("product_masters")
 }
 
 /// Maps a raw/alias product name to a canonical ProductMaster.
 model ProductAlias {
-  id              String   @id @default(uuid())
-  rawName         String   @unique
+  id              String        @id @default(uuid())
+  rawName         String        @unique
   productMasterId String
   productMaster   ProductMaster @relation(fields: [productMasterId], references: [id], onDelete: Cascade)
-  createdAt       DateTime @default(now())
+  createdAt       DateTime      @default(now())
 
   @@map("product_aliases")
 }
 
 /// Products that could not be mapped — queued for review.
 model UnknownProduct {
-  id             String   @id @default(uuid())
+  id             String    @id @default(uuid())
   rawName        String
   storeCode      String?
   businessDate   String?
-  occurrences    Int      @default(1)
+  occurrences    Int       @default(1)
   suggestedMatch String?
   resolvedAt     DateTime?
-  createdAt      DateTime @default(now())
+  createdAt      DateTime  @default(now())
 
   @@unique([rawName, storeCode])
   @@map("unknown_products")
