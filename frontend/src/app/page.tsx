@@ -5,6 +5,7 @@ import Link from "next/link";
 import XmlUploader from "@/components/XmlUploader";
 import ItemCatalog from "@/components/ItemCatalog";
 import SalesDashboard from "@/components/SalesDashboard";
+import { ProfileDropdown } from "@/components/ProfileDropdown";
 
 interface DashboardMetrics {
   totalImports: number;
@@ -110,6 +111,9 @@ export default function HomePage() {
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
               Online
             </span>
+            <div className="ml-2 pl-4 border-l border-white/10">
+              <ProfileDropdown />
+            </div>
           </div>
         </div>
       </header>
