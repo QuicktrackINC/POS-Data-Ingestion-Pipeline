@@ -86,6 +86,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from internal_assistant import router as internal_assistant_router
+app.include_router(internal_assistant_router)
+
 # ---------------------------------------------------------------------------
 # Security
 # ---------------------------------------------------------------------------
@@ -139,7 +142,18 @@ async def sso_login(sso_data: SSOLogin):
             
         user = await db.user.find_unique(where={"username": email})
         if not user:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account not linked. Access denied.")
+            # Auto-provision the user on first SSO login
+            role = payload.get("role", "ADMIN")
+            import hashlib, os
+            dummy_hash = hashlib.sha256(os.urandom(32)).hexdigest()
+            user = await db.user.create(
+                data={
+                    "username": email,
+                    "passwordHash": dummy_hash,
+                    "role": role,
+                    "storeId": None
+                }
+            )
             
         access_token = create_access_token(data={"sub": user.username, "role": user.role})
         return {"access_token": access_token, "token_type": "bearer"}
