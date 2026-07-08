@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "python3 -m venv .venv && . .venv/bin/activate && pip install prisma==0.13.1 && prisma db push --schema=./backend/prisma/schema.prisma --accept-data-loss && prisma generate --schema=./backend/prisma/schema.prisma"
+    "postinstall": "python3 -m venv .venv && . .venv/bin/activate && pip install prisma==0.13.1 && prisma db push --schema=../backend/prisma/schema.prisma --accept-data-loss && prisma generate --schema=../backend/prisma/schema.prisma"
   },
   "dependencies": {
     "@prisma/client": "^5.11.0",
