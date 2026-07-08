@@ -24,7 +24,7 @@ export function ProfileDropdown() {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
         setUser({
-          username: payload.sub || payload.username || "User",
+          username: payload.name || payload.email || payload.username || "User",
           email: payload.email || "",
           role: payload.role || "STORE_MANAGER"
         });
