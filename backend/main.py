@@ -141,18 +141,31 @@ async def sso_login(sso_data: SSOLogin):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email missing in SSO token")
             
         user = await db.user.find_unique(where={"username": email})
+        
+        role_from_token = payload.get("role")
+        mapped_role = "STAFF"
+        if role_from_token == "SUPERADMIN":
+            mapped_role = "SUPERADMIN"
+        elif role_from_token == "ADMIN":
+            mapped_role = "ADMIN"
+            
         if not user:
             # Auto-provision the user on first SSO login
-            role = payload.get("role", "ADMIN")
             import hashlib, os
             dummy_hash = hashlib.sha256(os.urandom(32)).hexdigest()
             user = await db.user.create(
                 data={
                     "username": email,
                     "passwordHash": dummy_hash,
-                    "role": role,
+                    "role": mapped_role,
                     "storeId": None
                 }
+            )
+        elif user.role != mapped_role:
+            # Update user role if it changed
+            user = await db.user.update(
+                where={"id": user.id},
+                data={"role": mapped_role}
             )
             
         access_token = create_access_token(data={"sub": user.username, "role": user.role})

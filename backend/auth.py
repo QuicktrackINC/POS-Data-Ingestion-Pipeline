@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 # --- Configuration ---
 SECRET_KEY = os.environ.get("SECRET_KEY", "pos-dev-secret-key-change-in-prod")
-AUTH_SECRET = os.environ.get("AUTH_SECRET", "quicktrack-dev-secret-change-in-production")
+AUTH_SECRET = os.environ.get("SSO_SHARED_SECRET", "quicktrack-dev-secret-change-in-production")
 ALGORITHM = os.environ.get("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "480"))
 
