@@ -9,7 +9,7 @@ export function ProfileDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
-  const [user, setUser] = useState<{ username?: string; role?: string; email?: string } | null>(null);
+  const [user, setUser] = useState<{ username?: string; role?: string; email?: string } | null>({ username: "User", role: "STORE_MANAGER" });
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {

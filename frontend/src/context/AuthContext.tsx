@@ -51,7 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     localStorage.removeItem("auth_token");
     setToken(null);
-    window.location.href = "http://localhost:3000"; // Redirect to hub
+    window.location.href = process.env.NEXT_PUBLIC_HUB_URL || "https://quicktrackhub.vercel.app";
   };
 
   if (loading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">Loading...</div>;

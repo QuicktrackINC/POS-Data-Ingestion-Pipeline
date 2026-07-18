@@ -87,6 +87,15 @@ export default function HomePage() {
       <header className="border-b border-white/5 px-6 py-4 backdrop-blur-md sticky top-0 z-50 bg-slate-950/50">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <a
+              href={process.env.NEXT_PUBLIC_HUB_URL || "https://quicktrackhub.vercel.app"}
+              className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors mr-2 group"
+              title="Back to Hub"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400 group-hover:text-white transition-colors">
+                <path d="m15 18-6-6 6-6"/>
+              </svg>
+            </a>
             <span className="text-xl" aria-hidden>🗂️</span>
             <span className="font-bold text-white tracking-tight">
               QuickTrack <span className="text-sky-400">Integration Core</span>
