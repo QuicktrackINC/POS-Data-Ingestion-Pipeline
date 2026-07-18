@@ -124,7 +124,7 @@ export default function LoginPage() {
 
           <div className="mt-6">
             <a
-              href="http://localhost:3000/api/tools/pos-pipeline/launch"
+              href={`${process.env.NEXT_PUBLIC_HUB_URL || "https://quicktrackhub.vercel.app"}/api/tools/pos-pipeline/launch`}
               className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors text-white font-medium"
             >
               <div className="flex h-6 w-6 items-center justify-center rounded bg-orange-500 text-xs font-black">
